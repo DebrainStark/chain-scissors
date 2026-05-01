@@ -1,0 +1,192 @@
+abi:
+  package: "tn_rps_program"
+  abi-version: 1
+  package-version: "1.0.0"
+  description: "Rock-Paper-Scissors-Lizard-Spock on-chain game"
+  imports: []
+  options:
+    program-metadata:
+      root-types:
+        instruction-root: "RpsInstructionEnvelope"
+        account-root: "RpsGame"
+        errors: "RpsError"
+        events: "RpsEvent"
+
+types:
+  # ── Instruction envelope ──────────────────────────────────────────────────
+  - name: "RpsInstructionEnvelope"
+    kind:
+      struct:
+        packed: true
+        fields:
+          - name: "tag"
+            field-type:
+              primitive: u32
+          - name: "payload"
+            field-type:
+              enum:
+                packed: true
+                tag-ref:
+                  field-ref:
+                    path: ["tag"]
+                variants:
+                  - name: "Init"
+                    tag-value: 0
+                    variant-type:
+                      type-ref:
+                        name: "InitArgs"
+                  - name: "Play"
+                    tag-value: 1
+                    variant-type:
+                      type-ref:
+                        name: "PlayArgs"
+
+  # ── Init instruction args ─────────────────────────────────────────────────
+  - name: "InitArgs"
+    kind:
+      struct:
+        packed: true
+        fields:
+          - name: "account_index"
+            field-type:
+              primitive: u16
+          - name: "game_seed"
+            field-type:
+              array:
+                size:
+                  literal:
+                    u64: 32
+                element-type:
+                  primitive: u8
+          - name: "proof_size"
+            field-type:
+              primitive: u32
+
+  # ── Play instruction args ─────────────────────────────────────────────────
+  - name: "PlayArgs"
+    kind:
+      struct:
+        packed: true
+        fields:
+          - name: "account_index"
+            field-type:
+              primitive: u16
+          - name: "player_move"
+            field-type:
+              primitive: u32
+
+  # ── Game account state ────────────────────────────────────────────────────
+  - name: "RpsGame"
+    kind:
+      struct:
+        packed: true
+        fields:
+          - name: "rounds_played"
+            field-type:
+              primitive: u64
+          - name: "player_wins"
+            field-type:
+              primitive: u64
+          - name: "player_losses"
+            field-type:
+              primitive: u64
+          - name: "draws"
+            field-type:
+              primitive: u64
+          - name: "last_player_move"
+            field-type:
+              primitive: u32
+          - name: "last_contract_move"
+            field-type:
+              primitive: u32
+          - name: "last_outcome"
+            field-type:
+              primitive: u32
+
+  # ── Event emitted on each play ────────────────────────────────────────────
+  - name: "RpsEvent"
+    kind:
+      struct:
+        packed: true
+        fields:
+          - name: "outcome"
+            field-type:
+              primitive: u32
+          - name: "player_move"
+            field-type:
+              primitive: u32
+          - name: "contract_move"
+            field-type:
+              primitive: u32
+          - name: "rounds_played"
+            field-type:
+              primitive: u64
+          - name: "player_wins"
+            field-type:
+              primitive: u64
+          - name: "player_losses"
+            field-type:
+              primitive: u64
+          - name: "draws"
+            field-type:
+              primitive: u64
+
+  # ── Errors ────────────────────────────────────────────────────────────────
+  - name: "RpsError"
+    kind:
+      struct:
+        packed: true
+        fields:
+          - name: "code"
+            field-type:
+              primitive: u64
+          - name: "error"
+            field-type:
+              enum:
+                packed: true
+                tag-ref:
+                  field-ref:
+                    path: ["code"]
+                variants:
+                  - name: "InvalidDataSize"
+                    tag-value: 0x2000
+                    variant-type:
+                      struct:
+                        packed: true
+                        fields: []
+                  - name: "InvalidInstruction"
+                    tag-value: 0x2001
+                    variant-type:
+                      struct:
+                        packed: true
+                        fields: []
+                  - name: "AccountCreateFailed"
+                    tag-value: 0x2002
+                    variant-type:
+                      struct:
+                        packed: true
+                        fields: []
+                  - name: "AccountWritableFailed"
+                    tag-value: 0x2003
+                    variant-type:
+                      struct:
+                        packed: true
+                        fields: []
+                  - name: "AccountResizeFailed"
+                    tag-value: 0x2004
+                    variant-type:
+                      struct:
+                        packed: true
+                        fields: []
+                  - name: "AccountAccessFailed"
+                    tag-value: 0x2005
+                    variant-type:
+                      struct:
+                        packed: true
+                        fields: []
+                  - name: "InvalidMove"
+                    tag-value: 0x2006
+                    variant-type:
+                      struct:
+                        packed: true
+                        fields: []
