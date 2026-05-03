@@ -127,13 +127,20 @@ function GameBoard({ gameSeed, onBack }: { gameSeed: string; onBack: () => void 
           <div className="acct-avatar">🎮</div>
           <div>
             <div className="acct-addr">
-              {addr ? `${addr.slice(0, 8)}…${addr.slice(-4)}` : "—"}
+              {addr ? `${addr.slice(0, 8)}…${addr.slice(-4)}` : "No account selected"}
             </div>
             <div className="acct-game">Seed: <code>{gameSeed}</code></div>
           </div>
         </div>
         <button className="btn-ghost" onClick={onBack}>← Back</button>
       </div>
+
+      {/* Account not selected warning */}
+      {!selectedAccount && (
+        <div className="status-bar error">
+          ⚠ No account selected — use the account switcher in the top-right corner to select or create one.
+        </div>
+      )}
 
       {/* Main card */}
       <div className="glass-card">
@@ -241,11 +248,10 @@ function GameBoard({ gameSeed, onBack }: { gameSeed: string; onBack: () => void 
 
 function Game() {
   const { isConnected } = useWallet();
-  const { selectedAccount } = useAccounts();
   const [seedInput, setSeedInput] = useState("");
   const [activeSeed, setActiveSeed] = useState<string | null>(null);
 
-  if (!isConnected || !selectedAccount) {
+  if (!isConnected) {
     return (
       <div className="glass-card">
         <div className="connect-screen">
@@ -261,11 +267,6 @@ function Game() {
             <span className="connect-tag">🎲 Provably Fair</span>
             <span className="connect-tag">⚡ Alphanet</span>
           </div>
-          {isConnected && !selectedAccount && (
-            <p style={{fontSize:"12px",color:"var(--draw)",marginBottom:"-8px"}}>
-              ⚠ Wallet connected — select an account to continue
-            </p>
-          )}
           <ThruAccountSwitcher />
         </div>
       </div>
