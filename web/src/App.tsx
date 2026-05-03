@@ -39,7 +39,14 @@ function useRpsGame(gameSeed: string) {
       const account = await thru.accounts.get(gameAddress);
       const bytes = account.data?.data;
       setGameState(bytes ? parseGameState(bytes) : null);
-    } catch { setGameState(null); }
+    } catch (e: unknown) {
+      // Account not found is expected before init — only surface real errors
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!msg.includes("not found") && !msg.includes("404")) {
+        setStatus(`RPC error: ${msg}`); setStatusType("error");
+      }
+      setGameState(null);
+    }
   }, [gameAddress]);
 
   useEffect(() => { fetchState(); }, [fetchState]);
@@ -73,7 +80,8 @@ function useRpsGame(gameSeed: string) {
   }, [selectedAccount, walletChain]);
 
   const initGame = useCallback(async () => {
-    if (!selectedAccount || !gameAddress) return;
+    if (!selectedAccount) { setStatus("No account selected — connect your wallet first."); setStatusType("error"); return; }
+    if (!gameAddress) { setStatus("Could not derive game address — check the seed."); setStatusType("error"); return; }
     setBusy(true); setStatus("Initializing game on-chain…"); setStatusType("info");
     try {
       await submitTx((getIndex) => buildInit(getIndex(gameAddress), gameSeed), [gameAddress]);
@@ -85,7 +93,8 @@ function useRpsGame(gameSeed: string) {
   }, [selectedAccount, gameAddress, gameSeed, submitTx, fetchState]);
 
   const playMove = useCallback(async (move: number) => {
-    if (!selectedAccount || !gameAddress) return;
+    if (!selectedAccount) { setStatus("No account selected."); setStatusType("error"); return; }
+    if (!gameAddress) { setStatus("Game address not available."); setStatusType("error"); return; }
     setBusy(true); setStatus(`Playing ${MOVES[move].name}…`); setStatusType("info");
     try {
       await submitTx((getIndex) => buildPlay(getIndex(gameAddress), move), [gameAddress]);
@@ -103,7 +112,8 @@ function useRpsGame(gameSeed: string) {
 
 function GameBoard({ gameSeed, onBack }: { gameSeed: string; onBack: () => void }) {
   const { selectedAccount } = useAccounts();
-  const { gameState, status, statusType, busy, initGame, playMove } = useRpsGame(gameSeed);
+  const { gameAddress, gameState, status, statusType, busy, initGame, playMove } = useRpsGame(gameSeed);
+  const shortGameAddr = gameAddress ? `${gameAddress.slice(0, 10)}…${gameAddress.slice(-6)}` : "deriving…";
   const lastOutcome = gameState ? OUTCOMES[gameState.last_outcome] : null;
   const outcomeClass = lastOutcome?.toLowerCase() ?? "";
   const addr = selectedAccount?.address ?? "";
@@ -144,6 +154,7 @@ function GameBoard({ gameSeed, onBack }: { gameSeed: string; onBack: () => void 
             <div className="no-game">
               <div className="no-game-orb">🎲</div>
               <p className="no-game-text">No game found for this seed.<br/>Create one to start playing on-chain.</p>
+              <p className="no-game-text" style={{fontSize:"11px",opacity:0.5}}>Game account: <code>{shortGameAddr}</code></p>
               <button className="btn-primary" onClick={initGame} disabled={busy}>
                 {busy ? "Creating…" : "⚡ Create Game"}
               </button>
