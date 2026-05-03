@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { ThruProvider, useWallet, useAccounts } from "@thru/react-sdk";
+import { ThruProvider, useWallet } from "@thru/react-sdk";
 import { ThruAccountSwitcher } from "@thru/react-ui";
 import { createThruClient, deriveAddress } from "@thru/thru-sdk";
 import {
@@ -16,7 +16,6 @@ const thru = createThruClient({ baseUrl: RPC_URL });
 // ── Game hook ─────────────────────────────────────────────────────────────
 
 function useRpsGame(gameSeed: string) {
-  const { selectedAccount } = useAccounts();
   const { wallet: walletChain } = useWallet();
   const [gameAddress, setGameAddress] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -40,7 +39,6 @@ function useRpsGame(gameSeed: string) {
       const bytes = account.data?.data;
       setGameState(bytes ? parseGameState(bytes) : null);
     } catch (e: unknown) {
-      // Account not found is expected before init — only surface real errors
       const msg = e instanceof Error ? e.message : String(e);
       if (!msg.includes("not found") && !msg.includes("404")) {
         setStatus(`RPC error: ${msg}`); setStatusType("error");
@@ -55,7 +53,7 @@ function useRpsGame(gameSeed: string) {
     buildInstData: (getIndex: (addr: string) => number) => Uint8Array,
     extraRwAccounts: string[],
   ) => {
-    if (!selectedAccount || !walletChain) throw new Error("Wallet not connected");
+    if (!walletChain) throw new Error("Wallet not connected");
     const signingCtx = await walletChain.getSigningContext();
     const feePayerAddr = signingCtx.feePayerPublicKey;
     const [feePayerAccount, heightSnap, chainId] = await Promise.all([
@@ -77,10 +75,10 @@ function useRpsGame(gameSeed: string) {
     const signedB64 = await walletChain.signTransaction(wireB64);
     const rawTx = Uint8Array.from(atob(signedB64), (c) => c.charCodeAt(0));
     return thru.transactions.send(rawTx);
-  }, [selectedAccount, walletChain]);
+  }, [walletChain]);
 
   const initGame = useCallback(async () => {
-    if (!selectedAccount) { setStatus("No account selected — connect your wallet first."); setStatusType("error"); return; }
+    if (!walletChain) { setStatus("Wallet not ready."); setStatusType("error"); return; }
     if (!gameAddress) { setStatus("Could not derive game address — check the seed."); setStatusType("error"); return; }
     setBusy(true); setStatus("Initializing game on-chain…"); setStatusType("info");
     try {
@@ -90,10 +88,10 @@ function useRpsGame(gameSeed: string) {
     } catch (e: unknown) {
       setStatus(e instanceof Error ? e.message : String(e)); setStatusType("error");
     } finally { setBusy(false); }
-  }, [selectedAccount, gameAddress, gameSeed, submitTx, fetchState]);
+  }, [walletChain, gameAddress, gameSeed, submitTx, fetchState]);
 
   const playMove = useCallback(async (move: number) => {
-    if (!selectedAccount) { setStatus("No account selected."); setStatusType("error"); return; }
+    if (!walletChain) { setStatus("Wallet not ready."); setStatusType("error"); return; }
     if (!gameAddress) { setStatus("Game address not available."); setStatusType("error"); return; }
     setBusy(true); setStatus(`Playing ${MOVES[move].name}…`); setStatusType("info");
     try {
@@ -103,7 +101,7 @@ function useRpsGame(gameSeed: string) {
     } catch (e: unknown) {
       setStatus(e instanceof Error ? e.message : String(e)); setStatusType("error");
     } finally { setBusy(false); }
-  }, [selectedAccount, gameAddress, submitTx, fetchState]);
+  }, [walletChain, gameAddress, submitTx, fetchState]);
 
   return { gameAddress, gameState, status, statusType, busy, initGame, playMove };
 }
@@ -111,12 +109,10 @@ function useRpsGame(gameSeed: string) {
 // ── Game Board ────────────────────────────────────────────────────────────
 
 function GameBoard({ gameSeed, onBack }: { gameSeed: string; onBack: () => void }) {
-  const { selectedAccount } = useAccounts();
   const { gameAddress, gameState, status, statusType, busy, initGame, playMove } = useRpsGame(gameSeed);
   const shortGameAddr = gameAddress ? `${gameAddress.slice(0, 10)}…${gameAddress.slice(-6)}` : "deriving…";
   const lastOutcome = gameState ? OUTCOMES[gameState.last_outcome] : null;
   const outcomeClass = lastOutcome?.toLowerCase() ?? "";
-  const addr = selectedAccount?.address ?? "";
 
   return (
     <div className="game-screen">
@@ -126,21 +122,12 @@ function GameBoard({ gameSeed, onBack }: { gameSeed: string; onBack: () => void 
         <div className="acct-left">
           <div className="acct-avatar">🎮</div>
           <div>
-            <div className="acct-addr">
-              {addr ? `${addr.slice(0, 8)}…${addr.slice(-4)}` : "No account selected"}
-            </div>
-            <div className="acct-game">Seed: <code>{gameSeed}</code></div>
+            <div className="acct-addr">Seed: <code>{gameSeed}</code></div>
+            <div className="acct-game">Game account: <code>{shortGameAddr}</code></div>
           </div>
         </div>
         <button className="btn-ghost" onClick={onBack}>← Back</button>
       </div>
-
-      {/* Account not selected warning */}
-      {!selectedAccount && (
-        <div className="status-bar error">
-          ⚠ No account selected — use the account switcher in the top-right corner to select or create one.
-        </div>
-      )}
 
       {/* Main card */}
       <div className="glass-card">
@@ -161,7 +148,6 @@ function GameBoard({ gameSeed, onBack }: { gameSeed: string; onBack: () => void 
             <div className="no-game">
               <div className="no-game-orb">🎲</div>
               <p className="no-game-text">No game found for this seed.<br/>Create one to start playing on-chain.</p>
-              <p className="no-game-text" style={{fontSize:"11px",opacity:0.5}}>Game account: <code>{shortGameAddr}</code></p>
               <button className="btn-primary" onClick={initGame} disabled={busy}>
                 {busy ? "Creating…" : "⚡ Create Game"}
               </button>
