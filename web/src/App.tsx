@@ -241,10 +241,11 @@ function GameBoard({ gameSeed, onBack }: { gameSeed: string; onBack: () => void 
 
 function Game() {
   const { isConnected } = useWallet();
+  const { selectedAccount } = useAccounts();
   const [seedInput, setSeedInput] = useState("");
   const [activeSeed, setActiveSeed] = useState<string | null>(null);
 
-  if (!isConnected) {
+  if (!isConnected || !selectedAccount) {
     return (
       <div className="glass-card">
         <div className="connect-screen">
@@ -260,6 +261,11 @@ function Game() {
             <span className="connect-tag">🎲 Provably Fair</span>
             <span className="connect-tag">⚡ Alphanet</span>
           </div>
+          {isConnected && !selectedAccount && (
+            <p style={{fontSize:"12px",color:"var(--draw)",marginBottom:"-8px"}}>
+              ⚠ Wallet connected — select an account to continue
+            </p>
+          )}
           <ThruAccountSwitcher />
         </div>
       </div>
