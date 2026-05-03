@@ -105,43 +105,47 @@ function GameBoard({ gameSeed, onBack }: { gameSeed: string; onBack: () => void 
   const { selectedAccount } = useAccounts();
   const { gameState, status, statusType, busy, initGame, playMove } = useRpsGame(gameSeed);
   const lastOutcome = gameState ? OUTCOMES[gameState.last_outcome] : null;
+  const outcomeClass = lastOutcome?.toLowerCase() ?? "";
   const addr = selectedAccount?.address ?? "";
 
   return (
     <div className="game-screen">
 
       {/* Account strip */}
-      <div className="account-strip">
-        <div className="account-info">
-          <div className="account-avatar" />
+      <div className="acct-strip">
+        <div className="acct-left">
+          <div className="acct-avatar">🎮</div>
           <div>
-            <div className="account-addr">
+            <div className="acct-addr">
               {addr ? `${addr.slice(0, 8)}…${addr.slice(-4)}` : "—"}
             </div>
-            <div className="account-seed">Game: <code>{gameSeed}</code></div>
+            <div className="acct-game">Seed: <code>{gameSeed}</code></div>
           </div>
         </div>
         <button className="btn-ghost" onClick={onBack}>← Back</button>
       </div>
 
       {/* Main card */}
-      <div className="card">
+      <div className="glass-card">
         <div className="card-header">
-          <span className="card-header-title">🎮 Rock · Paper · Scissors · Lizard · Spock</span>
-          <div className="network-badge">
-            <div className="network-dot" />
+          <span className="card-title">
+            <span className="card-title-dot" />
+            Rock · Paper · Scissors · Lizard · Spock
+          </span>
+          <div className="net-pill">
+            <div className="net-dot" />
             Alphanet
           </div>
         </div>
 
-        <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div className="card-body">
 
           {!gameState ? (
             <div className="no-game">
-              <div className="no-game-icon">🎲</div>
-              <p>No game found for this seed.</p>
+              <div className="no-game-orb">🎲</div>
+              <p className="no-game-text">No game found for this seed.<br/>Create one to start playing on-chain.</p>
               <button className="btn-primary" onClick={initGame} disabled={busy}>
-                {busy ? "Creating…" : "Create Game"}
+                {busy ? "Creating…" : "⚡ Create Game"}
               </button>
             </div>
           ) : (
@@ -164,34 +168,38 @@ function GameBoard({ gameSeed, onBack }: { gameSeed: string; onBack: () => void 
 
               {/* Last round */}
               {gameState.rounds_played > 0n && (
-                <div className={`last-round ${lastOutcome?.toLowerCase()}`}>
-                  <div className="round-side">
-                    <span className="round-label">You</span>
-                    <span className="round-emoji">{MOVES[gameState.last_player_move]?.emoji}</span>
-                    <span className="round-name">{MOVES[gameState.last_player_move]?.name}</span>
-                  </div>
-                  <span className="outcome-pill">{lastOutcome}</span>
-                  <div className="round-side">
-                    <span className="round-label">Contract</span>
-                    <span className="round-emoji">{MOVES[gameState.last_contract_move]?.emoji}</span>
-                    <span className="round-name">{MOVES[gameState.last_contract_move]?.name}</span>
+                <div className={`battle-card ${outcomeClass}`}>
+                  <div className="battle-inner">
+                    <div className="battle-side">
+                      <span className="battle-badge">You</span>
+                      <span className="battle-emoji">{MOVES[gameState.last_player_move]?.emoji}</span>
+                      <span className="battle-move-name">{MOVES[gameState.last_player_move]?.name}</span>
+                    </div>
+                    <div className="battle-center">
+                      <span className="battle-vs">vs</span>
+                      <span className="battle-outcome">{lastOutcome}</span>
+                    </div>
+                    <div className="battle-side">
+                      <span className="battle-badge">Contract</span>
+                      <span className="battle-emoji">{MOVES[gameState.last_contract_move]?.emoji}</span>
+                      <span className="battle-move-name">{MOVES[gameState.last_contract_move]?.name}</span>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Rounds counter */}
-              <div className="rounds-counter">
-                Round {String(gameState.rounds_played + 1n)}
-              </div>
-
               {/* Move picker */}
               <div>
-                <div className="move-picker-label">Choose your move</div>
+                <div className="section-header">
+                  <span className="section-label">Choose your move</span>
+                  <span className="round-badge">Round {String(gameState.rounds_played + 1n)}</span>
+                </div>
                 <div className="move-grid">
                   {MOVES.map((m) => (
                     <button
                       key={m.id}
                       className="move-btn"
+                      data-move={m.id}
                       onClick={() => playMove(m.id)}
                       disabled={busy}
                       title={m.name}
@@ -208,7 +216,7 @@ function GameBoard({ gameSeed, onBack }: { gameSeed: string; onBack: () => void 
           {/* Status */}
           {status && (
             <div className={`status-bar ${statusType}`}>
-              {busy && <div className="status-spinner" />}
+              {busy && <div className="spinner" />}
               {status}
             </div>
           )}
@@ -227,11 +235,20 @@ function Game() {
 
   if (!isConnected) {
     return (
-      <div className="card">
+      <div className="glass-card">
         <div className="connect-screen">
-          <div className="connect-fox">🦊</div>
-          <h2>Welcome to RPSLS</h2>
-          <p>Connect your Thru wallet to start playing Rock-Paper-Scissors-Lizard-Spock on-chain.</p>
+          <div className="connect-hero-emoji">
+            <span>🪨</span><span>📄</span><span>✂️</span><span>🦎</span><span>🖖</span>
+          </div>
+          <h2>Play RPSLS<br/>On-Chain</h2>
+          <p className="connect-sub">
+            Rock · Paper · Scissors · Lizard · Spock — powered by the Thru Network. Provably fair, on-chain randomness.
+          </p>
+          <div className="connect-tags">
+            <span className="connect-tag">⛓ On-Chain Logic</span>
+            <span className="connect-tag">🎲 Provably Fair</span>
+            <span className="connect-tag">⚡ Alphanet</span>
+          </div>
           <ThruAccountSwitcher />
         </div>
       </div>
@@ -243,36 +260,39 @@ function Game() {
   }
 
   return (
-    <div className="card">
+    <div className="glass-card">
       <div className="card-header">
-        <span className="card-header-title">🎮 Start a Game</span>
-        <div className="network-badge">
-          <div className="network-dot" />
+        <span className="card-title">
+          <span className="card-title-dot" />
+          Start a Game
+        </span>
+        <div className="net-pill">
+          <div className="net-dot" />
           Alphanet
         </div>
       </div>
       <div className="card-body">
-        <div className="seed-screen">
-          <p className="hint">Your seed creates a unique on-chain game account. Use the same seed to resume a previous game.</p>
-          <div className="input-group">
-            <label className="input-label">Game Seed</label>
-            <div className="input-row">
-              <input
-                className="mm-input"
-                value={seedInput}
-                onChange={(e) => setSeedInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && seedInput.trim() && setActiveSeed(seedInput.trim())}
-                placeholder="e.g. mygame1"
-                maxLength={31}
-              />
-              <button
-                className="btn-primary"
-                disabled={!seedInput.trim()}
-                onClick={() => setActiveSeed(seedInput.trim())}
-              >
-                Play →
-              </button>
-            </div>
+        <p className="form-hint">
+          Your seed creates a unique on-chain game account. Use the same seed to resume a previous game.
+        </p>
+        <div>
+          <div className="form-label">Game Seed</div>
+          <div className="input-wrap">
+            <input
+              className="chain-input"
+              value={seedInput}
+              onChange={(e) => setSeedInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && seedInput.trim() && setActiveSeed(seedInput.trim())}
+              placeholder="e.g. mygame1"
+              maxLength={31}
+            />
+            <button
+              className="btn-primary"
+              disabled={!seedInput.trim()}
+              onClick={() => setActiveSeed(seedInput.trim())}
+            >
+              Play →
+            </button>
           </div>
         </div>
       </div>
@@ -285,13 +305,14 @@ function Game() {
 export default function App() {
   return (
     <ThruProvider config={{ iframeUrl: "https://wallet.thru.org/embedded", rpcUrl: RPC_URL }}>
+      <div className="grid-bg" />
       <div className="app">
         <header className="app-header">
-          <div className="header-logo">
-            <div className="header-logo-icon">🪨</div>
-            <div>
+          <div className="brand">
+            <div className="brand-icon">🪨</div>
+            <div className="brand-text">
               <h1>RPSLS</h1>
-              <div className="subtitle">on Thru Network</div>
+              <div className="tagline">on Thru Network</div>
             </div>
           </div>
           <ThruAccountSwitcher />
