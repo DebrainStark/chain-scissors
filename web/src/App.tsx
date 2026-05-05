@@ -321,7 +321,9 @@ export default function App() {
           </div>
           <ThruAccountSwitcher />
         </header>
-        <Game />
+        <main className="app-main">
+          <Game />
+        </main>
       </div>
     </ThruProvider>
   );
